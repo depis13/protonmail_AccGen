@@ -44,7 +44,7 @@ def main() -> None:
     generator.run()
     if cnf['schedule']['enable_scheduler']:
         scheduler = BlockingScheduler()
-        scheduler.add_job(generator.run(), 'interval', minutes=cnf['schedule']['exec_interval_min'], max_instances=1)
+        scheduler.add_job(generator.run, 'interval', minutes=cnf['schedule']['exec_interval_min'], max_instances=1)
         scheduler.start()
 
 if __name__ == "__main__":

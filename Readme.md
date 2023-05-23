@@ -6,3 +6,5 @@
 2. Launch:
    `python main.py`
 
+3. Use `auth` in `extension_proxy` parameter to use proxy with authorization
+

@@ -5,11 +5,11 @@
   },
   "max_exec_times":2,
   "selenium": {
-    "headless": true
+    "headless": false
   },
    "proxy": {
       "use_proxy": true,
-      "extension_proxy":"browsec",
+      "extension_proxy":["browsec","troywell"],
       "endpoint":"",
       "port":"",
       "username":"",

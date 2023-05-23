@@ -18,9 +18,9 @@ from randomizer import randomize
 logger = logging.getLogger(__name__)
 
 class MailGenerator:
-    disposable_mail_list=[
-        'https://www.guerrillamail.com/',
-        'https://10minutesemail.net/']
+    #temporary_mail_list=[
+    #    'https://www.guerrillamail.com/',
+    #    'https://10minutesemail.net/']
 
     def __init__(self, cnf):
         self.cnf = cnf
@@ -50,48 +50,39 @@ class MailGenerator:
         self.disposable_mail_tab=self.driver.current_window_handle
         self.driver.switch_to.window(self.proton_tab)
 
-    def get_mail(self,mail_idx):
+    def get_mail(self):
         try:
             self.driver.switch_to.window(self.disposable_mail_tab)
-            url=MailGenerator.disposable_mail_list[mail_idx]
+            url='https://10minutesemail.net/'
             self.driver.get(url)
-            if mail_idx==0:
-                mail_input=self.driver.find_element(By.ID, 'email-widget')
-                mail=mail_input.text
-            elif mail_idx==1:
-                self.driver.refresh()
-                try:
-                    consent_button=WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Consent"]')))
-                    consent_button.click()
-                except:
-                    pass
-                mail_input=self.driver.find_element(By.ID, 'tempEmailAddress')
-                mail=mail_input.get_property('value')
+
+            self.driver.refresh()
+            try:
+                consent_button=WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Consent"]')))
+                consent_button.click()
+            except:
+                pass
+            mail_input=self.driver.find_element(By.ID, 'tempEmailAddress')
+            mail=mail_input.get_property('value')
             logger.info(f'temporary mail address: {mail}')
             self.driver.switch_to.window(self.proton_tab)
             return(mail)
         except Exception as err:
             logger.error(f'get_mail() error: {err}')
 
-    def get_verification_code(self,mail_idx):
+    def get_verification_code(self):
         try:
             self.driver.switch_to.window(self.disposable_mail_tab)
-            if mail_idx==0:
-                verification_code_td=WebDriverWait(self.driver, 150).until(
-                        EC.element_to_be_clickable((By.XPATH, "//td[contains(text(), 'Proton Verification Code')]")))
-                verification_code_span = verification_code_td.find_element(By.XPATH, ".//span")
-                verification_code_text=verification_code_span.text
-                verification_code=verification_code_text.split()[-1]
-            elif mail_idx==1:
-                verification_code_btn=WebDriverWait(self.driver, 150).until(
-                    EC.element_to_be_clickable((By.XPATH, "//td[contains(text(), 'Proton Verification Code')]")))
-                verification_code_btn.click()
-                verification_code_iframe=WebDriverWait(self.driver, 50).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, 'iframe[height="400px"]')))
-                self.driver.switch_to.frame(verification_code_iframe)
-                verification_code=self.driver.find_element(By.TAG_NAME, "code").text.strip()
-                self.driver.switch_to.default_content()
+
+            verification_code_btn=WebDriverWait(self.driver, 200).until(
+                EC.element_to_be_clickable((By.XPATH, "//td[contains(text(), 'Proton Verification Code')]")))
+            verification_code_btn.click()
+            verification_code_iframe=WebDriverWait(self.driver, 50).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, 'iframe[height="400px"]')))
+            self.driver.switch_to.frame(verification_code_iframe)
+            verification_code=self.driver.find_element(By.TAG_NAME, "code").text.strip()
+            self.driver.switch_to.default_content()
 
             logger.info(f'verification code: {verification_code}')
             self.driver.switch_to.window(self.proton_tab)
@@ -113,6 +104,9 @@ class MailGenerator:
             self.driver.get(url)
             password_input=WebDriverWait(self.driver, 300).until(
                 EC.element_to_be_clickable((By.ID, "password")))
+            
+            password_input.click()
+            
             password_input.send_keys(password)
 
             repeat_password_input=self.driver.find_element(By.ID, 'repeat-password')
@@ -141,25 +135,19 @@ class MailGenerator:
                     email_verification_button=self.driver.find_element(By.ID, "label_1")
                     email_verification_button.click()
                     email_input=self.driver.find_element(By.ID, "email")
-            for i in range(len(MailGenerator.disposable_mail_list)):
-                try:
-                    mail=self.get_mail(i)
-                    email_input.click()
-                    email_input.send_keys(Keys.END)
-                    email_input.send_keys(Keys.SHIFT + Keys.HOME)
-                    email_input.send_keys(Keys.DELETE)
-                    email_input.send_keys(mail)
-                    get_code_button=self.driver.find_element(By.XPATH, "//button[contains(text(), 'Get verification code')]")
-                    get_code_button.click()
-                    verification_input=WebDriverWait(self.driver, 10).until(
-                        EC.element_to_be_clickable((By.ID, "verification")))
-                    code=self.get_verification_code(i)
-                    break
-                except:
-                    logger.warning(f'email from {MailGenerator.disposable_mail_list[i]} failed')
-            else:
-                logger.error(f'all disposable emails failed')
-                return False
+
+            mail=self.get_mail()
+            email_input.click()
+            email_input.send_keys(Keys.END)
+            email_input.send_keys(Keys.SHIFT + Keys.HOME)
+            email_input.send_keys(Keys.DELETE)
+            email_input.send_keys(mail)
+            get_code_button=self.driver.find_element(By.XPATH, "//button[contains(text(), 'Get verification code')]")
+            get_code_button.click()
+            verification_input=WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "verification")))
+            code=self.get_verification_code()
+
             verification_input.send_keys(code)
             verify_button=self.driver.find_element(By.XPATH,"//button[contains(text(),'Verify')]")
             verify_button.click()
