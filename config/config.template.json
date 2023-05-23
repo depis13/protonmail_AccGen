@@ -1,0 +1,18 @@
+{
+  "schedule": {
+    "enable_scheduler":true,
+    "exec_interval_min": 2
+  },
+  "max_exec_times":2,
+  "selenium": {
+    "headless": true
+  },
+   "proxy": {
+      "use_proxy": true,
+      "extension_proxy":"browsec",
+      "endpoint":"",
+      "port":"",
+      "username":"",
+      "password":""
+    }
+}
