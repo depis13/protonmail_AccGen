@@ -55,10 +55,9 @@ class MailGenerator:
             self.driver.switch_to.window(self.disposable_mail_tab)
             url='https://10minutesemail.net/'
             self.driver.get(url)
-
-            self.driver.refresh()
+            
             try:
-                consent_button=WebDriverWait(self.driver, 10).until(
+                consent_button=WebDriverWait(self.driver, 12).until(
                 EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Consent"]')))
                 consent_button.click()
             except:
@@ -106,7 +105,7 @@ class MailGenerator:
                 EC.element_to_be_clickable((By.ID, "password")))
             
             password_input.click()
-            
+
             password_input.send_keys(password)
 
             repeat_password_input=self.driver.find_element(By.ID, 'repeat-password')
@@ -123,7 +122,7 @@ class MailGenerator:
 
             #choose email verification
             try:
-                phone_input=WebDriverWait(self.driver, 10).until(
+                phone_input=WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.ID, "phone")))
                 email_verification_button=self.driver.find_element(By.ID, "label_0")
                 email_verification_button.click()
