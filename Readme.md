@@ -1,10 +1,12 @@
-1. Modify library file `venv/lib/python3.8/site-packages/undetected_chromedriver/patcher.py`:
-   Line 16: add `import secrets`
-   Line 63: replace `prefix = "undetected"`
-   with `prefix = secrets.token_hex(8)`
+# protonmail_AccGen
 
-2. Launch:
+protonmail account generator
+
+1. Create a virtual environment
+   `python -m venv venv && source venv/bin/activate`
+2. Install dependencies
+   `pip3 install -r requirements.txt`
+3. Launch:
    `python main.py`
 
-3. Use `auth` in `extension_proxy` parameter to use proxy with authorization
 

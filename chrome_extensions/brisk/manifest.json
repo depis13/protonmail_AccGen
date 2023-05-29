@@ -1,0 +1,43 @@
+{
+   "author": "Brisk VPN",
+   "background": {
+      "persistent": true,
+      "scripts": [ "js/background.js" ]
+   },
+   "browser_action": {
+      "default_icon": {
+         "128": "icons/disabled128.png",
+         "16": "icons/disabled16.png",
+         "300": "icons/disabled300.png",
+         "48": "icons/disabled48.png"
+      },
+      "default_popup": "html/popup.html",
+      "default_title": "__MSG_extName__"
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "css": [ "css/content.css" ],
+      "js": [ "js/content.js" ],
+      "match_about_blank": true,
+      "matches": [ "http://*/*", "https://*/*" ],
+      "run_at": "document_start"
+   } ],
+   "default_locale": "en",
+   "description": "__MSG_extShortDesc__",
+   "icons": {
+      "128": "icons/icon128.png",
+      "16": "icons/icon16.png",
+      "300": "icons/icon300.png",
+      "48": "icons/icon48.png"
+   },
+   "incognito": "split",
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgXHJc8vlgI1/Veb8MNVGO+EraU8RcybHsF2mf2pgIVu87BLl1d4Vi6+olS0vJdLmjv1MxnJbhJ43yOtvZTLqIqIuRmWDWvo0bEfcE/WMS+zTTF6KauKZZ+4x4S+pl/i5L/QRLanRFZJGNYqMTspgls4pL5hjFen9fLs4sh0oxYegMDGTT12UVTIW+EN4YujTK4k2SUkxq6fV8nmqmoUjArugKZlvc9Yzw5ndvQR3f2xl1Ivb8XtbQNWHINr6dmyzlFPyCWoxW+AWLAZgEdnR5+CDmQJgNNJKElSGBdLR0hReNuwclV+oTdcsDiIZTT5CY4rG40ogAKd143DvDejkuQIDAQAB",
+   "manifest_version": 2,
+   "minimum_chrome_version": "55.0",
+   "name": "__MSG_extName__",
+   "permissions": [ "proxy", "storage", "\u003Call_urls>" ],
+   "short_name": "__MSG_extName__",
+   "update_url": "https://clients2.google.com/service/update2/crx",
+   "version": "1.0.5",
+   "web_accessible_resources": [ "/web_accessible_resources/*" ]
+}

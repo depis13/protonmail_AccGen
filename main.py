@@ -6,7 +6,7 @@ import sys
 from json import JSONDecodeError
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from protonmail_generator import MailGenerator
+from generator import MailGenerator
 
 logger = logging.getLogger(__name__)
 os.environ["DISPLAY"] = ":0"
