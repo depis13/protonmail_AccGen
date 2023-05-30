@@ -29,7 +29,7 @@ class MailGenerator:
 
     password=None
     username=None
-    bad_servers=['cn','de','ru']
+    bad_servers=['cn','de','ru','sg','bo']
 
     def make_result(self,username,password) -> bool:
         try:
@@ -234,7 +234,7 @@ class MailGenerator:
                 else:
                     self.driver = uc.Chrome(version_main=version, options=options)
                 #proxy
-                wait = WebDriverWait(self.driver, 10)
+                wait = WebDriverWait(self.driver, 15)
                 proxy_ext_url = 'chrome-extension://ciifcakemmcbbdpmljdohdmbodagmela/html/popup.html'
                 self.driver.get(proxy_ext_url)
                 server_list_button = wait.until(
