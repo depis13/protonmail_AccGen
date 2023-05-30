@@ -1,0 +1,1 @@
+[-] fix fill_registration_data bug

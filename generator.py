@@ -91,7 +91,6 @@ class MailGenerator:
                     verification_code_btn=WebDriverWait(self.driver, 300).until(
                         EC.element_to_be_clickable((By.CLASS_NAME, "subject_email")))
                     verification_code_btn.click()
-                    print(1)
                     break
                 except:
                     WebDriverWait(self.driver, 1).until(
@@ -184,7 +183,7 @@ class MailGenerator:
                 verification_input=WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable((By.ID, "verification")))
             except Exception as err:
-                raise(f'error during sending mail verification. {err}')
+                raise Exception(f'error during sending mail verification. {err}')
 
             code=self.get_verification_code()
             if not code:
@@ -199,7 +198,7 @@ class MailGenerator:
                     EC.element_to_be_clickable((By.XPATH,"//button[contains(text(),'Next')]")))
                 display_namy_apply_button.click()
             except Exception as err:
-                raise(f'error during completing registration. {err}')
+                raise Exception(f'error during completing registration. {err}')
 
             if self.make_result(self.username,self.password):
                 return True
@@ -233,7 +232,7 @@ class MailGenerator:
                 else:
                     self.driver = uc.Chrome(version_main=version, options=options)
                 #proxy
-                wait = WebDriverWait(self.driver, 5)
+                wait = WebDriverWait(self.driver, 10)
                 proxy_ext_url = 'chrome-extension://ciifcakemmcbbdpmljdohdmbodagmela/html/popup.html'
                 self.driver.get(proxy_ext_url)
                 server_list_button = wait.until(
