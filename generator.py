@@ -5,6 +5,7 @@ import json
 from random import randint
 import sys
 from typing import Union
+from time import sleep
 
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
@@ -28,6 +29,7 @@ class MailGenerator:
 
     password=None
     username=None
+    bad_servers=['cn',]
 
     def make_result(self,username,password) -> bool:
         try:
@@ -66,14 +68,12 @@ class MailGenerator:
             self.driver.switch_to.window(self.disposable_mail_tab)
             url='https://10minutesemail.net/'
             self.driver.get(url)
-            try:
-                consent_button=WebDriverWait(self.driver, 12).until(
-                EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Consent"]')))
-                consent_button.click()
-            except:
-                pass
-            mail_input=self.driver.find_element(By.ID, 'tempEmailAddress')
-            mail=mail_input.get_property('value')
+            mail_input=self.driver.find_element(By.ID, 'trsh_mail')
+            while True:
+                mail=mail_input.get_property('value')
+                if mail!='landing.':
+                    break
+
             logger.info(f'temporary mail address: {mail}')
             self.driver.switch_to.window(self.proton_tab)
             return(mail)
@@ -84,14 +84,14 @@ class MailGenerator:
         try:
             #getting verification code from 10min mail
             self.driver.switch_to.window(self.disposable_mail_tab)
-            verification_code_btn=WebDriverWait(self.driver, 200).until(
-                EC.element_to_be_clickable((By.XPATH, "//td[contains(text(), 'Proton Verification Code')]")))
+            verification_code_btn=WebDriverWait(self.driver, 300).until(
+                EC.element_to_be_clickable((By.XPATH, "//p[contains(text(), 'Proton Verification Code')]")))
             verification_code_btn.click()
-            verification_code_iframe=WebDriverWait(self.driver, 50).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, 'iframe[height="400px"]')))
-            self.driver.switch_to.frame(verification_code_iframe)
+            WebDriverWait(self.driver, 300).until(
+                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Your Proton verification code is: ')]")))
             verification_code=self.driver.find_element(By.TAG_NAME, "code").text.strip()
             self.driver.switch_to.default_content()
+
             logger.info(f'verification code: {verification_code}')
             self.driver.switch_to.window(self.proton_tab)
             return verification_code
@@ -125,14 +125,17 @@ class MailGenerator:
         try:
             #trying to choose email verification
             try:
+                #phone/email
                 phone_input=WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.ID, "phone")))
                 email_verification_button=self.driver.find_element(By.ID, "label_0")
                 email_verification_button.click()
                 email_input=self.driver.find_element(By.ID, "email")
+                return email_input
             except:
                 try:
                     email_input=self.driver.find_element(By.ID, "email")
+                    return email_input
                 except:
                     email_verification_button=self.driver.find_element(By.ID, "label_1")
                     email_verification_button.click()
@@ -224,9 +227,10 @@ class MailGenerator:
                 location_items=wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'location-item')))
                 for location in location_items:
                     code_value=location.get_attribute('data-code')
-                    if code_value!=self.server_code:
+                    if code_value!=self.server_code and code_value not in MailGenerator.bad_servers:
                         location.click()
                         self.server_code=code_value
+                        logger.info(f'Selected server is [{self.server_code}]')
                         wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, 'btn-status'), 'DISCONNECT'))
                         break
                 else:
@@ -254,7 +258,7 @@ class MailGenerator:
                     if not self.create_account():
                         self.stop()
                         continue
-                    logger.info('Generator executed succesfully')
+                    logger.info('registration completed')
                     return
                 except Exception as e:
                     msg = f"run() falied. {e}"

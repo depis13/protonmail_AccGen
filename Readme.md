@@ -6,7 +6,8 @@ protonmail account generator
    `python -m venv venv && source venv/bin/activate`
 2. Install dependencies
    `pip3 install -r requirements.txt`
-3. Launch:
+3. Make `config.json` from `config.template.json`
+4. Launch:
    `python main.py`
 
 
