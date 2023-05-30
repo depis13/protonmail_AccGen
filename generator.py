@@ -99,7 +99,7 @@ class MailGenerator:
             sleep(1)
             iframe=self.driver.find_element(By.ID,'myIframe')
             self.driver.switch_to.frame(iframe)
-            verification_code=self.driver.find_element(By.TAG_NAME,'code').text
+            verification_code=self.driver.find_element(By.TAG_NAME,'code').text.strip()
             self.driver.switch_to.default_content()
             logger.info(f'verification code: {verification_code}')
             self.driver.switch_to.window(self.proton_tab)
@@ -238,18 +238,25 @@ class MailGenerator:
                 self.driver.get(proxy_ext_url)
                 server_list_button = wait.until(
                     EC.element_to_be_clickable((By.CLASS_NAME, "current-location")))
-                server_list_button.click()
-                location_items=wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'location-item')))
-                for location in location_items:
-                    code_value=location.get_attribute('data-code')
-                    if code_value!=self.server_code and code_value not in MailGenerator.bad_servers:
-                        location.click()
-                        self.server_code=code_value
-                        logger.info(f'Selected server is [{self.server_code}]')
-                        wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, 'btn-status'), 'DISCONNECT'))
-                        break
+                max_connect_attempts=self.cnf['selenium']['max_proxy_attempts']
+                for i in range(max_connect_attempts):
+                    try:
+                        server_list_button.click()
+                        location_items=wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'location-item')))
+                        for location in location_items:
+                            code_value=location.get_attribute('data-code')
+                            if code_value!=self.server_code and code_value not in MailGenerator.bad_servers:
+                                location.click()
+                                self.server_code=code_value
+                                logger.info(f'Selected server is [{self.server_code}]')
+                                wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, 'btn-status'), 'DISCONNECT'))
+                                return
+                        else:
+                            raise Exception(f'cannot connect to provided servers')
+                    except:
+                        logger.warning(f'Proxy connection attempt {i+1}/{max_connect_attempts} failed')
                 else:
-                    raise Exception('cannot choose server')
+                    raise Exception('cannot connect to proxy')
             except Exception as err:
                 if self.driver:
                     self.stop()
@@ -257,7 +264,6 @@ class MailGenerator:
                     continue
                 else:
                     raise Exception(f'driver initialization error: {err}')
-            return
 
     def run(self) -> bool:
         try:
