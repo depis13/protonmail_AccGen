@@ -161,7 +161,7 @@ class MailGenerator:
             logger.error(f'create_account() error: {err}')
             return False
 
-    def create_driver(self, extension_proxy_name=None):
+    def create_driver(self):
         #options
         options = uc.ChromeOptions()
         if self.cnf["selenium"]["headless"]:
