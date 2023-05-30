@@ -36,15 +36,15 @@ def get_config() -> None:
         logger.error(f"Error in task file: {err}")
         sys.exit(1)
 
-generator=None
 def main() -> None:
-    global generator
     get_config()
     generator=MailGenerator(cnf)
-    generator.run()
-    if cnf['schedule']['enable_scheduler']:
+    if not cnf['schedule']['enable_scheduler']:
+        generator.run()
+    else:
+        max_runs = cnf['schedule'].get('max_runs', None)
         scheduler = BlockingScheduler()
-        scheduler.add_job(generator.run, 'interval', minutes=cnf['schedule']['exec_interval_min'], max_instances=1)
+        scheduler.add_job(generator.run, 'interval', minutes=cnf['schedule']['exec_interval_min'], max_instances=1,max_runs=max_runs)
         scheduler.start()
 
 if __name__ == "__main__":
@@ -52,6 +52,4 @@ if __name__ == "__main__":
         main()
     except (KeyboardInterrupt, SystemExit):
         logger.info("Worker aborted manually")
-        if generator:
-            generator.stop()
         sys.exit(0)

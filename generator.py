@@ -3,13 +3,16 @@ import logging
 import os
 import json
 from random import randint
+import sys
+
+from time import sleep
 
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+#from selenium.webdriver.remote.webelement import WebElement
 
 
 from get_driver_version import get_chrome_version
@@ -22,7 +25,8 @@ class MailGenerator:
     def __init__(self, cnf):
         self.cnf = cnf
         self.driver = None
-    
+        self.server_code=None
+
     def make_result(self,username,password) -> bool:
         try:
             if not os.path.exists("results"):
@@ -172,21 +176,9 @@ class MailGenerator:
         options.add_argument('--mute-audio')
         options.add_argument('--use-fake-device-for-media-stream')
         options.add_argument('--no-first-run')
-        if self.cnf["proxy"]["use_proxy"]:
-            if self.cnf["proxy"]["extension_proxy"]:
-                ext_relative_path = f"chrome_extensions/{extension_proxy_name}"
-                ext_absolute_path = os.path.abspath(ext_relative_path)
-                options.add_argument(f"--load-extension={ext_absolute_path}")
-                if self.cnf["proxy"]["extension_proxy"] == 'auth':
-                    proxy = Proxy()
-                    proxy.proxy_type = ProxyType.MANUAL
-                    proxy.http_proxy = f'{self.cnf["proxy"]["endpoint"]}:{self.cnf["proxy"]["port"]}'
-                    options.add_argument('--proxy-server=%s' % proxy.http_proxy)
-            else:
-                proxy = Proxy()
-                proxy.proxy_type = ProxyType.MANUAL
-                proxy.http_proxy = f'{self.cnf["proxy"]["endpoint"]}:{self.cnf["proxy"]["port"]}'
-                options.add_argument('--proxy-server=%s' % proxy.http_proxy)
+        proxy_ext_relative_path = f"chrome_extensions/brisk"
+        proxy_ext_absolute_path = os.path.abspath(proxy_ext_relative_path)
+        options.add_argument(f"--load-extension={proxy_ext_absolute_path}")
         while True:
             try:
                 version = get_chrome_version()
@@ -195,53 +187,22 @@ class MailGenerator:
                 else:
                     self.driver = uc.Chrome(version_main=version, options=options)
                 #proxy
-                if self.cnf["proxy"]["use_proxy"]:
-                    if 'extension_proxy' in self.cnf["proxy"]:
-                        if self.cnf["proxy"]["extension_proxy"]:
-                            wait = WebDriverWait(self.driver, 5)
-                            ext_urls_dict = {
-                                'troywell': 'chrome-extension://adlpodnneegcnbophopdmhedicjbcgco/popup.html',
-                                'auth': 'chrome-extension://ggmdpepbjljkkkdaklfihhngmmgmpggp/options.html',
-                                'browsec': 'chrome-extension://omghfjlpggmjjaagoclmmobgdodcjboh/popup/popup.html',
-                            }
-                            ext_url = ext_urls_dict[extension_proxy_name]
-                            self.driver.get('https://google.com')
-                            self.driver.get(ext_url)
-                            if extension_proxy_name == 'troywell':
-                                for i in range(3):
-                                    try:
-                                        try:
-                                            wait.until(
-                                                EC.visibility_of_element_located((By.CLASS_NAME, "analytics")))
-                                            decline_button = self.driver.find_element(By.CLASS_NAME, "analytics__button")
-                                            decline_button.click()
-                                            wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, 'fade-enter-from')))
-                                        except:
-                                            pass
-                                        connect_button = wait.until(
-                                            EC.element_to_be_clickable((By.CLASS_NAME, "connect-button")))
-                                        connect_button.click()
-                                        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "connect-button_green")))
-                                        break
-                                    except:
-                                        self.driver.refresh()
-                                        pass
-                                else:
-                                    raise Exception('Cannnot connect to troywell extension')
-                            elif extension_proxy_name == 'auth':
-                                username_input = wait.until(EC.presence_of_element_located((By.ID, "login")))
-                                username_input.send_keys(self.cnf["proxy"]["username"])
-                                password_input = self.driver.find_element(By.ID, "password")
-                                password_input.send_keys(self.cnf["proxy"]["password"])
-                                save_button = self.driver.find_element(By.ID, "save")
-                                save_button.click()
-                            elif extension_proxy_name == 'browsec':
-                                start_button = wait.until(
-                                    EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]")))
-                                start_button.click()
-            except (KeyboardInterrupt, SystemExit):
-                if self.driver:
-                    self.stop()
+                wait = WebDriverWait(self.driver, 5)
+                proxy_ext_url = 'chrome-extension://ciifcakemmcbbdpmljdohdmbodagmela/html/popup.html'
+                self.driver.get(proxy_ext_url)
+                server_list_button = wait.until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "current-location")))
+                server_list_button.click()
+                location_items=wait.until(EC.visibility_of_all_elements_located((By.CLASS_NAME, 'location-item')))
+                for location in location_items:
+                    code_value=location.get_attribute('data-code')
+                    if code_value!=self.server_code:
+                        location.click()
+                        self.server_code=code_value
+                        wait.until(EC.text_to_be_present_in_element((By.CLASS_NAME, 'btn-status'), 'DISCONNECT'))
+                        break
+                else:
+                    raise Exception('cannot choose server')
             except Exception as err:
                 if self.driver:
                     self.stop()
@@ -253,44 +214,30 @@ class MailGenerator:
 
     def run(self) -> bool:
         try:
-            i = 1
+            i = 0
             max_execution_times = self.cnf["max_exec_times"]
-            extension_names = self.cnf["proxy"]["extension_proxy"]
-            if isinstance(extension_names, str):
-                extension_names = [extension_names]
-            num_extensions = len(extension_names)
             while True:
-                logger.info(f'Attempt {i}/{max_execution_times}')
                 i += 1
+                logger.info(f'Attempt {i}/{max_execution_times}')
                 if i > max_execution_times:
                     raise Exception("Unable to make mail within defined number of executions")
-                if 'max_ext_attempts' not in self.cnf['proxy']:
-                    max_ext_attempts = 2
-                else:
-                    max_ext_attempts = self.cnf['proxy']['max_ext_attempts']
-                for ext_idx in range(num_extensions):
-                    ext_name = extension_names[ext_idx]
-                    for ext_attempt in range(max_ext_attempts):
-                        try:
-                            self.create_driver(ext_name)
-                            if not self.create_account():
-                                self.stop()
-                                continue
-                            self.stop()
-                            logger.info('Generator executed succesfully')
-                            return
-                        except Exception as e:
-                            msg = f"Extension '{ext_name}' failed with error: {e}. Attempt {ext_attempt + 1}/{max_ext_attempts}"
-                            logger.warning(msg)
-                        finally:
-                            if self.driver:
-                                self.stop()
-                    else:
-                        logger.error(f"All attempts for extension '{ext_name}' failed")
+                try:
+                    self.create_driver()
+                    if not self.create_account():
+                        self.stop()
                         continue
-                else:
-                    msg = f'All VPN extensions failed.'
-                    logger.error(msg)
+                    logger.info('Generator executed succesfully')
+                    return
+                except Exception as e:
+                    msg = f"run() falied. {e}"
+                    logger.warning(msg)
+                finally:
+                    if self.driver:
+                        self.stop()
+        except (KeyboardInterrupt, SystemExit):
+            if self.driver:
+                self.stop()
+            sys.exit(0)
         except Exception as err:
             msg = f'Error in run(). {err}'
             logger.error(msg)
