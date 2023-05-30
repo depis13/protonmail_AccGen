@@ -1,7 +1,6 @@
 {
   "schedule": {
     "enable_scheduler":true,
-    "max_runs":5,
     "exec_interval_min": 2
   },
   "max_exec_times":2,

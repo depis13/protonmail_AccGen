@@ -29,7 +29,7 @@ class MailGenerator:
 
     password=None
     username=None
-    bad_servers=['cn',]
+    bad_servers=['cn','de']
 
     def make_result(self,username,password) -> bool:
         try:
@@ -68,12 +68,14 @@ class MailGenerator:
             self.driver.switch_to.window(self.disposable_mail_tab)
             url='https://10minutesemail.net/'
             self.driver.get(url)
-            mail_input=self.driver.find_element(By.ID, 'trsh_mail')
+            mail_input=WebDriverWait(self.driver, 5).until(
+                        EC.element_to_be_clickable((By.ID, "trsh_mail")))
             while True:
                 mail=mail_input.get_property('value')
-                if mail!='landing.':
+                if 'landing' not in mail:
                     break
-
+            #self.csrf_token = self.driver.find_element(By.CSS_SELECTOR,'meta[name="csrf_token"]').get_attribute('content')
+            #logger.info(f'csrf: {self.csrf_token}')
             logger.info(f'temporary mail address: {mail}')
             self.driver.switch_to.window(self.proton_tab)
             return(mail)
@@ -84,14 +86,21 @@ class MailGenerator:
         try:
             #getting verification code from 10min mail
             self.driver.switch_to.window(self.disposable_mail_tab)
-            verification_code_btn=WebDriverWait(self.driver, 300).until(
-                EC.element_to_be_clickable((By.XPATH, "//p[contains(text(), 'Proton Verification Code')]")))
-            verification_code_btn.click()
-            WebDriverWait(self.driver, 300).until(
-                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Your Proton verification code is: ')]")))
-            verification_code=self.driver.find_element(By.TAG_NAME, "code").text.strip()
+            while True:
+                try:
+                    verification_code_btn=WebDriverWait(self.driver, 300).until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, "subject_email")))
+                    verification_code_btn.click()
+                    print(1)
+                    break
+                except:
+                    WebDriverWait(self.driver, 1).until(
+                        EC.element_to_be_clickable((By.XPATH,"//button[@aria-label='Consent']"))).click()
+            sleep(1)
+            iframe=self.driver.find_element(By.ID,'myIframe')
+            self.driver.switch_to.frame(iframe)
+            verification_code=self.driver.find_element(By.TAG_NAME,'code').text
             self.driver.switch_to.default_content()
-
             logger.info(f'verification code: {verification_code}')
             self.driver.switch_to.window(self.proton_tab)
             return verification_code
@@ -164,27 +173,33 @@ class MailGenerator:
                 return False
             
             #sending mail for verification
-            email_input.click()
-            email_input.send_keys(Keys.END)
-            email_input.send_keys(Keys.SHIFT + Keys.HOME)
-            email_input.send_keys(Keys.DELETE)
-            email_input.send_keys(mail)
-            get_code_button=self.driver.find_element(By.XPATH, "//button[contains(text(), 'Get verification code')]")
-            get_code_button.click()
-            verification_input=WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "verification")))
+            try:
+                email_input.click()
+                email_input.send_keys(Keys.END)
+                email_input.send_keys(Keys.SHIFT + Keys.HOME)
+                email_input.send_keys(Keys.DELETE)
+                email_input.send_keys(mail)
+                get_code_button=self.driver.find_element(By.XPATH, "//button[contains(text(), 'Get verification code')]")
+                get_code_button.click()
+                verification_input=WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, "verification")))
+            except Exception as err:
+                raise(f'error during sending mail verification. {err}')
 
             code=self.get_verification_code()
             if not code:
                 return False
 
             #completing registration
-            verification_input.send_keys(code)
-            verify_button=self.driver.find_element(By.XPATH,"//button[contains(text(),'Verify')]")
-            verify_button.click()
-            display_namy_apply_button=WebDriverWait(self.driver, 40).until(
-                EC.element_to_be_clickable((By.XPATH,"//button[contains(text(),'Next')]")))
-            display_namy_apply_button.click()
+            try:
+                verification_input.send_keys(code)
+                verify_button=self.driver.find_element(By.XPATH,"//button[contains(text(),'Verify')]")
+                verify_button.click()
+                display_namy_apply_button=WebDriverWait(self.driver, 40).until(
+                    EC.element_to_be_clickable((By.XPATH,"//button[contains(text(),'Next')]")))
+                display_namy_apply_button.click()
+            except Exception as err:
+                raise(f'error during completing registration. {err}')
 
             if self.make_result(self.username,self.password):
                 return True
@@ -250,9 +265,9 @@ class MailGenerator:
             max_execution_times = self.cnf["max_exec_times"]
             while True:
                 i += 1
-                logger.info(f'Attempt {i}/{max_execution_times}')
                 if i > max_execution_times:
                     raise Exception("Unable to make mail within defined number of executions")
+                logger.info(f'Attempt {i}/{max_execution_times}')
                 try:
                     self.create_driver()
                     if not self.create_account():
