@@ -4,15 +4,14 @@ import os
 import json
 from random import randint
 import sys
-
-from time import sleep
+from typing import Union
 
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
-#from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webelement import WebElement
 
 
 from get_driver_version import get_chrome_version
@@ -27,8 +26,12 @@ class MailGenerator:
         self.driver = None
         self.server_code=None
 
+    password=None
+    username=None
+
     def make_result(self,username,password) -> bool:
         try:
+            #making json with proton mail data
             if not os.path.exists("results"):
                 os.mkdir("results")
             filename = "results/protonmails.json"
@@ -45,18 +48,24 @@ class MailGenerator:
         except Exception as err:
             logger.error(f'make_result() error: {err}')
 
-    def make_handles(self):
-        self.proton_tab=self.driver.current_window_handle
-        self.driver.switch_to.new_window('tab')
-        self.disposable_mail_tab=self.driver.current_window_handle
-        self.driver.switch_to.window(self.proton_tab)
-
-    def get_mail(self):
+    def make_handles(self) -> bool:
         try:
+            #making handles
+            self.proton_tab=self.driver.current_window_handle
+            self.driver.switch_to.new_window('tab')
+            self.disposable_mail_tab=self.driver.current_window_handle
+            self.driver.switch_to.window(self.proton_tab)
+            return True
+        except Exception as err:
+            logger.error(f'make_handles() canot make handles. {err}')
+            return False
+
+    def get_mail(self) -> Union[str,None]:
+        try:
+            #getting 10min mail address
             self.driver.switch_to.window(self.disposable_mail_tab)
             url='https://10minutesemail.net/'
             self.driver.get(url)
-            
             try:
                 consent_button=WebDriverWait(self.driver, 12).until(
                 EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Consent"]')))
@@ -71,10 +80,10 @@ class MailGenerator:
         except Exception as err:
             logger.error(f'get_mail() error: {err}')
 
-    def get_verification_code(self):
+    def get_verification_code(self) -> Union[str,None]:
         try:
+            #getting verification code from 10min mail
             self.driver.switch_to.window(self.disposable_mail_tab)
-
             verification_code_btn=WebDriverWait(self.driver, 200).until(
                 EC.element_to_be_clickable((By.XPATH, "//td[contains(text(), 'Proton Verification Code')]")))
             verification_code_btn.click()
@@ -83,45 +92,38 @@ class MailGenerator:
             self.driver.switch_to.frame(verification_code_iframe)
             verification_code=self.driver.find_element(By.TAG_NAME, "code").text.strip()
             self.driver.switch_to.default_content()
-
             logger.info(f'verification code: {verification_code}')
             self.driver.switch_to.window(self.proton_tab)
             return verification_code
         except Exception as err:
             logger.error(f'get_verification_code() error: {err}')
     
-    def create_account(self):
+    def fill_registration_data(self) -> bool:
         try:
             url='https://account.proton.me/signup?plan=free&billing=12&ref=prctbl&minimumCycle=12&currency=EUR&product=mail&language=en'
-
-            self.make_handles()
-            username=randomize('-s', randint(4,7))+randomize('-s',randint(4,7))+randomize('-s',randint(4,7))
-            logger.info(f'Username: {username}')
-            password=randomize('-p',randint(14,25))
-            logger.info(f'Password: {password}')
-
             #fill registration data
             self.driver.get(url)
             password_input=WebDriverWait(self.driver, 300).until(
                 EC.element_to_be_clickable((By.ID, "password")))
-            
             password_input.click()
-
-            password_input.send_keys(password)
-
+            password_input.send_keys(self.password)
             repeat_password_input=self.driver.find_element(By.ID, 'repeat-password')
-            repeat_password_input.send_keys(password)
-
+            repeat_password_input.send_keys(self.password)
             username_iframe=self.driver.find_element(By.CSS_SELECTOR, "iframe[title='Username']")
             self.driver.switch_to.frame(username_iframe)
             username_input = self.driver.find_element(By.ID, "email")
-            username_input.send_keys(username)
+            username_input.send_keys(self.username)
             self.driver.switch_to.default_content()
-
             create_account_button=self.driver.find_element(By.XPATH,"//button[contains(text(),'Create account')]")
             create_account_button.click()
-
-            #choose email verification
+            return True
+        except:
+            logger.error(f'cannot fill registration data')
+            return False
+    
+    def find_email_input(self) -> Union[WebElement,None]:
+        try:
+            #trying to choose email verification
             try:
                 phone_input=WebDriverWait(self.driver, 20).until(
                 EC.element_to_be_clickable((By.ID, "phone")))
@@ -135,8 +137,30 @@ class MailGenerator:
                     email_verification_button=self.driver.find_element(By.ID, "label_1")
                     email_verification_button.click()
                     email_input=self.driver.find_element(By.ID, "email")
+                    return email_input
+        except Exception as err:
+            logger.error(f'find_email_input() cannot find email input. {err}')
 
+
+    def create_account(self) -> bool:
+        try:
+            if not self.make_handles():
+                return False
+            self.username=randomize('-s', randint(4,7))+randomize('-s',randint(4,7))+randomize('-s',randint(4,7))
+            self.password=randomize('-p',randint(14,25))
+            logger.info(f'Username: {self.username}')
+            logger.info(f'Password: {self.password}')
+            if not self.fill_registration_data():
+                return False
+            #choose email verification
+            email_input=self.find_email_input()
+            if not email_input:
+                return False
             mail=self.get_mail()
+            if not mail:
+                return False
+            
+            #sending mail for verification
             email_input.click()
             email_input.send_keys(Keys.END)
             email_input.send_keys(Keys.SHIFT + Keys.HOME)
@@ -146,8 +170,12 @@ class MailGenerator:
             get_code_button.click()
             verification_input=WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((By.ID, "verification")))
-            code=self.get_verification_code()
 
+            code=self.get_verification_code()
+            if not code:
+                return False
+
+            #completing registration
             verification_input.send_keys(code)
             verify_button=self.driver.find_element(By.XPATH,"//button[contains(text(),'Verify')]")
             verify_button.click()
@@ -155,7 +183,7 @@ class MailGenerator:
                 EC.element_to_be_clickable((By.XPATH,"//button[contains(text(),'Next')]")))
             display_namy_apply_button.click()
 
-            if self.make_result(username,password):
+            if self.make_result(self.username,self.password):
                 return True
         except Exception as err:
             logger.error(f'create_account() error: {err}')
