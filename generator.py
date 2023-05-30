@@ -29,7 +29,7 @@ class MailGenerator:
 
     password=None
     username=None
-    bad_servers=['cn','de']
+    bad_servers=['cn','de','ru']
 
     def make_result(self,username,password) -> bool:
         try:
@@ -198,6 +198,8 @@ class MailGenerator:
                     EC.element_to_be_clickable((By.XPATH,"//button[contains(text(),'Next')]")))
                 display_namy_apply_button.click()
             except Exception as err:
+                while True:
+                    sleep(10)
                 raise Exception(f'error during completing registration. {err}')
 
             if self.make_result(self.username,self.password):
@@ -253,7 +255,7 @@ class MailGenerator:
                         else:
                             raise Exception(f'cannot connect to provided servers')
                     except:
-                        logger.warning(f'Proxy connection attempt {i+1}/{max_connect_attempts} failed')
+                        logger.warning(f'Proxy connection attempt to [{self.server_code}] ({i+1}/{max_connect_attempts}) failed')
                 else:
                     raise Exception('cannot connect to proxy')
             except Exception as err:
